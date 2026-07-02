@@ -1,0 +1,11 @@
+data:
+  generator: "moons"
+  M: 10
+  N_train: 256
+  N_test: 512
+  input_dim: 2
+  n_classes: 2
+  noise: 0.1
+  random_state_start: 1000
+  standardize: true
+

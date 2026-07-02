@@ -1,0 +1,11 @@
+network:
+  model_type: "mlp"
+  input_dim: 2
+  output_dim: 2
+  hidden_layers: [32, 32]
+  activation: "relu"
+  epochs: 50
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.0
+

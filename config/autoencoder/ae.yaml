@@ -1,0 +1,7 @@
+autoencoder:
+  model_type: "ae"
+  latent_dim: 32
+  epochs: 50
+  batch_size: 32
+  lr: 0.001
+

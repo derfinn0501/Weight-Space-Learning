@@ -1,0 +1,12 @@
+data:
+  generator: "blobs"
+  M: 10
+  N_train: 256
+  N_test: 512
+  input_dim: 2
+  n_classes: 2
+  centers: 2
+  cluster_std: 1.0
+  random_state_start: 2000
+  standardize: true
+

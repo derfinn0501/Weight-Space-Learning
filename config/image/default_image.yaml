@@ -1,0 +1,7 @@
+image:
+  representation: "block_matrix"
+  include_input_data: false
+  include_labels: true
+  include_bias: true
+  normalize: "none"
+

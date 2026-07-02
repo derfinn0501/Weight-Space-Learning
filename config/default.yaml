@@ -1,0 +1,49 @@
+seed: 42
+device: "auto"
+
+data:
+  generator: "moons"
+  M: 10
+  N_train: 256
+  N_test: 512
+  input_dim: 2
+  n_classes: 2
+  noise: 0.1
+  random_state_start: 1000
+  centers: 2
+  cluster_std: 1.0
+  standardize: true
+
+network:
+  model_type: "mlp"
+  input_dim: 2
+  output_dim: 2
+  hidden_layers: [32, 32]
+  activation: "relu"
+  epochs: 50
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.0
+
+image:
+  representation: "block_matrix"
+  include_input_data: false
+  include_labels: true
+  include_bias: true
+  normalize: "none"
+
+autoencoder:
+  model_type: "cae"
+  latent_dim: 32
+  epochs: 50
+  batch_size: 32
+  lr: 0.001
+
+paths:
+  data_root: "data"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  model_zoo_dir: "data/model_zoo"
+  weight_image_dir: "data/weight_images"
+  result_dir: "data/results"
+
