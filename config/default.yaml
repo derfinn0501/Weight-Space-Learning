@@ -49,6 +49,20 @@ evaluation:
   save_latent_embeddings: true
   plot_format: "png"
 
+# MLflow tracking
+#
+# The default URI points to the shared Raspberry Pi tracking server. Connect to
+# the local network or WireGuard VPN before running experiments from outside the
+# network. Use "http://127.0.0.1:5000" only when running a local MLflow server
+# with scripts/start_mlflow_server.py.
+mlflow:
+  enabled: true
+  tracking_uri: "http://192.168.1.26:5000"
+  experiment_name: "weight-space-learning"
+  run_name: "default"
+  log_artifacts: true
+  tags: {}
+
 paths:
   data_root: "data"
   raw_dir: "data/raw"
@@ -59,3 +73,5 @@ paths:
   autoencoder_dir: "data/results/autoencoders"
   figure_dir: "data/results/figures"
   metric_dir: "data/results/metrics"
+  mlflow_backend_store: "data/mlflow/mlflow.db"
+  mlflow_artifact_dir: "data/mlflow/artifacts"

@@ -51,6 +51,157 @@ python scripts/04_train_autoencoder.py --config config/default.yaml
 python scripts/05_evaluate.py --config config/default.yaml
 ```
 
+Or run the same stages as one tracked MLflow experiment:
+
+```bash
+python scripts/run_experiment.py --config config/default.yaml
+```
+
+With the default team configuration, runs are logged to the shared Raspberry Pi
+MLflow server:
+
+```text
+http://192.168.1.26:5000
+```
+
+The Pi must be reachable from the current machine. When working outside the
+home network, connect to the WireGuard VPN first and keep using the same
+internal URL.
+
+Use this command to run the pipeline without creating an MLflow run:
+
+```bash
+python scripts/run_experiment.py --config config/default.yaml --no-mlflow
+```
+
+## Shared MLflow Server
+
+The team MLflow server runs on the Raspberry Pi `kopi` with Podman. The server
+is reachable on the local network or VPN at:
+
+```text
+http://192.168.1.26:5000
+```
+
+The Pi deployment lives outside this repository:
+
+```text
+~/mlflow-server/
+  compose.yml
+  Dockerfile
+  .env
+  postgres-data/       PostgreSQL metadata store
+  mlflow-artifacts/    run artifacts served through MLflow
+```
+
+The server has two persistent stores:
+
+- PostgreSQL stores experiment metadata, parameters, metrics, tags, and run
+  state.
+- `mlflow-artifacts/` stores configs, plots, checkpoints, and other files
+  logged by `run_experiment.py`.
+
+Do not delete `postgres-data/` or `mlflow-artifacts/` unless you explicitly want
+to remove the experiment history.
+
+### Using The Shared Server
+
+1. Connect to the same network as the Pi, or connect through WireGuard VPN.
+2. Open `http://192.168.1.26:5000` and confirm the MLflow UI loads.
+3. Run an experiment from the repository root:
+
+   ```bash
+   python scripts/run_experiment.py --config config/default.yaml
+   ```
+
+4. Refresh the MLflow UI. The run should appear under the experiment configured
+   by `mlflow.experiment_name`.
+
+MLflow tracking is configured in `config/default.yaml` under the `mlflow`
+section. The default config points to the shared Pi server so normal
+`run_experiment.py` calls are logged there automatically.
+
+### Restarting The Server
+
+On the Raspberry Pi:
+
+```bash
+cd ~/mlflow-server
+
+podman stop mlflow-server
+podman restart mlflow-postgres
+sleep 5
+podman start mlflow-server
+sleep 60
+curl -I http://127.0.0.1:5000
+```
+
+The final `curl` should return an HTTP response such as `HTTP/1.1 200 OK`.
+MLflow can take 30-60 seconds to finish booting on the Pi.
+
+After editing `~/mlflow-server/compose.yml`, recreate the MLflow container so
+the new command is applied:
+
+```bash
+cd ~/mlflow-server
+
+podman stop mlflow-server
+podman rm mlflow-server
+podman compose -f compose.yml up -d mlflow
+sleep 60
+curl -I http://127.0.0.1:5000
+```
+
+Avoid `podman compose down -v`; volume removal can destroy persisted server
+state in volume-based setups.
+
+### Server Health Checks
+
+On the Pi:
+
+```bash
+podman ps -a --filter name=mlflow
+podman exec mlflow-postgres pg_isready -U mlflow -d mlflow
+curl -I http://127.0.0.1:5000
+```
+
+From another machine on the network or VPN:
+
+```bash
+curl -I http://192.168.1.26:5000
+```
+
+If the browser UI works but some requests are blocked, check the MLflow logs:
+
+```bash
+podman logs --tail 120 mlflow-server
+```
+
+The server command in `compose.yml` should allow the host and origin used by the
+team, for example `192.168.1.26:5000`.
+
+### Local Fallback Server
+
+For single-user local development without the Pi, start the SQLite-backed local
+server from the repository root:
+
+```bash
+python scripts/start_mlflow_server.py --config config/default.yaml
+```
+
+The local server uses:
+
+```text
+data/mlflow/mlflow.db         SQLite backend store for local run metadata
+data/mlflow/artifacts/        local artifact store
+```
+
+For local-only tracking, set `mlflow.tracking_uri` in the config to:
+
+```text
+http://127.0.0.1:5000
+```
+
 Generated artifacts are written under:
 
 ```text
@@ -60,6 +211,7 @@ data/weight_images/         raw extracted weights, image tensors, and layout met
 data/results/autoencoders/  AE/CAE checkpoint, training history, metrics, metadata
 data/results/figures/       loss curves and reconstruction plots
 data/results/metrics/       reconstruction metrics and latent embeddings
+data/mlflow/                local MLflow SQLite DB and artifacts
 ```
 
 These generated files are ignored by Git. The tracked `.gitkeep` files preserve
@@ -84,7 +236,9 @@ The main config is `config/default.yaml`. It controls:
 - whether to include the original training inputs in the image,
 - per-image normalization,
 - AE/CAE model type, latent dimension, training hyperparameters, and split,
-- evaluation plot and latent-embedding outputs.
+- evaluation plot and latent-embedding outputs,
+- MLflow tracking behavior, including whether tracking is enabled, the shared
+  server URI, experiment name, run name, artifact logging, and run tags.
 
 The first image representation is `block_matrix`: each weight matrix or bias
 vector is placed as a structured 2D block in deterministic layer order. Layout
