@@ -16,9 +16,10 @@ def create_output_dirs(config: dict[str, Any]) -> None:
         paths.get("model_zoo_dir", "data/model_zoo"),
         paths.get("weight_image_dir", "data/weight_images"),
         paths.get("result_dir", "data/results"),
-        Path(paths.get("result_dir", "data/results")) / "figures",
+        paths.get("autoencoder_dir", "data/results/autoencoders"),
+        paths.get("figure_dir", "data/results/figures"),
+        paths.get("metric_dir", "data/results/metrics"),
     ]
 
     for path in required:
         Path(path).mkdir(parents=True, exist_ok=True)
-

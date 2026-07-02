@@ -1,13 +1,77 @@
-"""Dataset helpers for autoencoder training."""
+"""Dataset helpers for autoencoder training and evaluation."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
+
+import torch
+from torch.utils.data import Dataset, Subset, random_split
 
 from src.image_gen.weight_image_dataset import WeightImageDataset
 
 
-def load_weight_image_dataset(root_dir: str | Path = "data/weight_images") -> WeightImageDataset:
-    """Return the generated weight-image dataset with a channel dimension."""
-    return WeightImageDataset(root_dir=root_dir, add_channel_dim=True)
+class AutoencoderWeightImageDataset(Dataset):
+    """Load generated weight images with a consistent channel-first shape."""
+
+    def __init__(
+        self,
+        root_dir: str | Path = "data/weight_images",
+        validate_same_shape: bool = True,
+    ) -> None:
+        self.base_dataset = WeightImageDataset(root_dir=root_dir, add_channel_dim=True)
+        first = self.base_dataset[0]
+        self.image_shape = tuple(int(dim) for dim in first["image"].shape)
+
+        if validate_same_shape:
+            for index in range(1, len(self.base_dataset)):
+                shape = tuple(int(dim) for dim in self.base_dataset[index]["image"].shape)
+                if shape != self.image_shape:
+                    raise ValueError(
+                        "All weight images must have the same shape for AE/CAE training. "
+                        f"Expected {self.image_shape}, found {shape} at index {index}."
+                    )
+
+    def __len__(self) -> int:
+        return len(self.base_dataset)
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        item = self.base_dataset[index]
+        return {
+            "image": item["image"].float(),
+            "dataset_id": item["dataset_id"],
+            "image_id": item["dataset_id"],
+            "path": item["path"],
+        }
+
+
+def load_weight_image_dataset(
+    root_dir: str | Path = "data/weight_images",
+) -> AutoencoderWeightImageDataset:
+    """Return the generated weight-image dataset for AE/CAE training."""
+    return AutoencoderWeightImageDataset(root_dir=root_dir)
+
+
+def train_validation_split(
+    dataset: Dataset,
+    train_split: float = 0.8,
+    seed: int = 42,
+) -> tuple[Subset, Subset]:
+    """Split a dataset into train and validation subsets."""
+    if not 0.0 < train_split <= 1.0:
+        raise ValueError("train_split must be in (0, 1].")
+
+    n_total = len(dataset)
+    if n_total == 0:
+        raise ValueError("Cannot split an empty dataset.")
+    if n_total == 1:
+        single = Subset(dataset, [0])
+        return single, single
+
+    n_train = int(round(n_total * train_split))
+    n_train = min(max(n_train, 1), n_total - 1)
+    n_val = n_total - n_train
+    generator = torch.Generator().manual_seed(int(seed))
+    train_dataset, val_dataset = random_split(dataset, [n_train, n_val], generator=generator)
+    return train_dataset, val_dataset
 

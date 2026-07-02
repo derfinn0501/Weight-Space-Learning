@@ -36,8 +36,18 @@ autoencoder:
   model_type: "cae"
   latent_dim: 32
   epochs: 50
-  batch_size: 32
+  batch_size: 16
   lr: 0.001
+  weight_decay: 0.0
+  train_split: 0.8
+  num_workers: 0
+  checkpoint_every: 0
+
+evaluation:
+  save_reconstructions: true
+  n_reconstruction_examples: 8
+  save_latent_embeddings: true
+  plot_format: "png"
 
 paths:
   data_root: "data"
@@ -46,4 +56,6 @@ paths:
   model_zoo_dir: "data/model_zoo"
   weight_image_dir: "data/weight_images"
   result_dir: "data/results"
-
+  autoencoder_dir: "data/results/autoencoders"
+  figure_dir: "data/results/figures"
+  metric_dir: "data/results/metrics"
