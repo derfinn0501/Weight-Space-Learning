@@ -57,7 +57,7 @@ evaluation:
 # with scripts/start_mlflow_server.py.
 mlflow:
   enabled: true
-  tracking_uri: "http://192.168.1.26:5000"
+  tracking_uri: "http://192.168.178.25:5000"
   experiment_name: "weight-space-learning"
   run_name: "default"
   log_artifacts: true
