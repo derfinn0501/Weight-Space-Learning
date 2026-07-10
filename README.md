@@ -10,7 +10,8 @@ The pipeline creates a meta-dataset where each meta-datapoint contains:
 3. the trained target-network weights,
 4. one deterministic weight-image representation,
 5. metadata plus train/test metrics,
-6. optional AE/CAE reconstructions and latent embeddings of the weight images.
+6. AE/CAE reconstructions and latent embeddings of the weight images,
+7. an optional dataset encoder trained into the same latent space.
 
 The professor's `Rügamer code` folder was used only as context for the original
 weight-to-image idea. This repository is rebuilt from scratch with a clean,
@@ -25,6 +26,7 @@ src/dataset_gen/        synthetic dataset generators and collection builder
 src/network_learning/   target-network models and training
 src/image_gen/          weight extraction and image layout code
 src/cond_AE/            AE/CAE models, datasets, and training
+src/dataset_encoder/    dataset-to-latent encoder models and training
 src/evaluation/         metrics, plotting, and latent embedding helpers
 src/utils/              config, IO, paths, and seed helpers
 scripts/                runnable pipeline entry points
@@ -48,6 +50,7 @@ python scripts/01_generate_datasets.py --config config/default.yaml
 python scripts/02_train_target_networks.py --config config/default.yaml
 python scripts/03_generate_weight_images.py --config config/default.yaml
 python scripts/04_train_autoencoder.py --config config/default.yaml
+python scripts/06_train_dataset_encoder.py --config config/default.yaml
 python scripts/05_evaluate.py --config config/default.yaml
 ```
 
@@ -209,6 +212,7 @@ data/processed/             generated datasets and dataset metadata
 data/model_zoo/             trained model checkpoints, metrics, and metadata
 data/weight_images/         raw extracted weights, image tensors, and layout metadata
 data/results/autoencoders/  AE/CAE checkpoint, training history, metrics, metadata
+data/results/dataset_encoders/  dataset encoder checkpoint, history, metrics, metadata
 data/results/figures/       loss curves and reconstruction plots
 data/results/metrics/       reconstruction metrics and latent embeddings
 data/mlflow/                local MLflow SQLite DB and artifacts
@@ -236,6 +240,7 @@ The main config is `config/default.yaml`. It controls:
 - whether to include the original training inputs in the image,
 - per-image normalization,
 - AE/CAE model type, latent dimension, training hyperparameters, and split,
+- dataset-encoder model type, tabular input split, architecture, and training hyperparameters,
 - evaluation plot and latent-embedding outputs,
 - MLflow tracking behavior, including whether tracking is enabled, the shared
   server URI, experiment name, run name, artifact logging, and run tags.
@@ -259,3 +264,10 @@ prediction of weight images.
 `scripts/05_evaluate.py` loads the trained checkpoint, computes reconstruction
 MSE/MAE/relative-L2 metrics, saves example reconstruction plots, and optionally
 saves latent embeddings.
+
+## Dataset Encoder Stage
+
+`scripts/06_train_dataset_encoder.py` trains `dataset_encoder.model_type:
+"deepsets"` to map generated tabular datasets into the frozen autoencoder latent
+space. The default `dataset_encoder.input_split: "all"` uses both train and test
+rows, with labels included as row features.

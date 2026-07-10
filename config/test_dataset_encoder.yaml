@@ -3,7 +3,7 @@ device: "auto"
 
 data:
   generator: "moons"
-  M: 10
+  M: 32
   N_train: 256
   N_test: 512
   input_dim: 2
@@ -74,10 +74,11 @@ evaluation:
 mlflow:
   enabled: true
   tracking_uri: "http://192.168.178.25:5000"
-  experiment_name: "weight-space-learning"
-  run_name: "default"
+  experiment_name: "test_dataset_encoder"
+  run_name: "moons_32_deepsets_baseline"
   log_artifacts: true
-  tags: {}
+  tags:
+    purpose: "first_dataset_encoder_run"
 
 paths:
   data_root: "data"

@@ -17,6 +17,7 @@ def create_output_dirs(config: dict[str, Any]) -> None:
         paths.get("weight_image_dir", "data/weight_images"),
         paths.get("result_dir", "data/results"),
         paths.get("autoencoder_dir", "data/results/autoencoders"),
+        paths.get("dataset_encoder_dir", "data/results/dataset_encoders"),
         paths.get("figure_dir", "data/results/figures"),
         paths.get("metric_dir", "data/results/metrics"),
     ]

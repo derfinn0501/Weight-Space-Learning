@@ -1,0 +1,15 @@
+dataset_encoder:
+  model_type: "deepsets"
+  input_split: "all"
+  include_labels: true
+  point_hidden_dim: 64
+  point_output_dim: 128
+  encoder_hidden_dim: 128
+  num_layers: 2
+  aggregation: "mean"
+  epochs: 50
+  batch_size: 16
+  lr: 0.001
+  weight_decay: 0.0
+  train_split: 0.8
+  num_workers: 0

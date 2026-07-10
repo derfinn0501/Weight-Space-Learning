@@ -13,6 +13,7 @@ import numpy as np
 
 from src.cond_AE.train_ae import train_autoencoder
 from src.dataset_gen.dataset_collection import generate_dataset_collection
+from src.dataset_encoder.train_encoder import train_dataset_encoder
 from src.evaluation.pipeline_evaluation import evaluate_trained_autoencoder
 from src.evaluation.plots import plot_loss_curve
 from src.image_gen.generate_collection import generate_weight_images
@@ -26,6 +27,7 @@ STAGE_ORDER = (
     "target_networks",
     "weight_images",
     "autoencoder",
+    "dataset_encoder",
     "evaluation",
 )
 
@@ -129,6 +131,7 @@ def _selected_artifacts(config: dict[str, Any], stage: str) -> list[Path]:
     model_zoo_dir = Path(paths.get("model_zoo_dir", "data/model_zoo"))
     weight_image_dir = Path(paths.get("weight_image_dir", "data/weight_images"))
     autoencoder_dir = Path(paths.get("autoencoder_dir", "data/results/autoencoders"))
+    dataset_encoder_dir = Path(paths.get("dataset_encoder_dir", "data/results/dataset_encoders"))
     figure_dir = Path(paths.get("figure_dir", "data/results/figures"))
     metric_dir = Path(paths.get("metric_dir", "data/results/metrics"))
 
@@ -156,6 +159,15 @@ def _selected_artifacts(config: dict[str, Any], stage: str) -> list[Path]:
             autoencoder_dir / "metrics.json",
             autoencoder_dir / "metadata.json",
             figure_dir / f"autoencoder_loss_curve.{config.get('evaluation', {}).get('plot_format', 'png')}",
+        ]
+    if stage == "dataset_encoder":
+        return [
+            dataset_encoder_dir / "checkpoint.pt",
+            dataset_encoder_dir / "training_history.json",
+            dataset_encoder_dir / "metrics.json",
+            dataset_encoder_dir / "metadata.json",
+            figure_dir / f"dataset_encoder_loss_curve.{config.get('evaluation', {}).get('plot_format', 'png')}",
+            figure_dir / f"dataset_encoder_reconstructions.{config.get('evaluation', {}).get('plot_format', 'png')}",
         ]
     if stage == "evaluation":
         return [
@@ -201,6 +213,19 @@ def _train_autoencoder_stage(config: dict[str, Any]) -> dict[str, Any]:
     plot_loss_curve(
         result["history"],
         figure_dir / f"autoencoder_loss_curve.{plot_format}",
+    )
+    return result
+
+
+def _train_dataset_encoder_stage(config: dict[str, Any]) -> dict[str, Any]:
+    result = train_dataset_encoder(config)
+    plot_format = config.get("evaluation", {}).get("plot_format", "png")
+    figure_dir = Path(config.get("paths", {}).get("figure_dir", "data/results/figures"))
+    figure_dir.mkdir(parents=True, exist_ok=True)
+    plot_loss_curve(
+        result["history"],
+        figure_dir / f"dataset_encoder_loss_curve.{plot_format}",
+        title="Dataset encoder training loss",
     )
     return result
 
@@ -330,6 +355,33 @@ def run_experiment(
                     "metrics": ae_result["metrics"],
                     "metadata": ae_result["metadata"],
                     "output_dir": ae_result["output_dir"],
+                }
+
+            elif stage == "dataset_encoder":
+                set_random_seed(int(config.get("seed", 42)))
+                encoder_result = _run_stage(
+                    stage,
+                    lambda: _train_dataset_encoder_stage(config),
+                    mlflow=mlflow,
+                    log_artifacts=log_artifacts,
+                    config=config,
+                )
+                metadata = encoder_result["metadata"]
+                for key in ("n_total", "n_train", "n_validation", "input_dim", "row_dim", "latent_dim"):
+                    _log_metric(mlflow, f"dataset_encoder.{key}", metadata.get(key))
+                _log_metrics_dict(mlflow, "dataset_encoder.final", encoder_result["metrics"])
+                for epoch, train_loss, val_loss in zip(
+                    encoder_result["history"]["epoch"],
+                    encoder_result["history"]["train_loss"],
+                    encoder_result["history"]["val_loss"],
+                ):
+                    step = int(epoch)
+                    _log_metric(mlflow, "dataset_encoder.train_loss", train_loss, step=step)
+                    _log_metric(mlflow, "dataset_encoder.val_loss", val_loss, step=step)
+                results[stage] = {
+                    "metrics": encoder_result["metrics"],
+                    "metadata": metadata,
+                    "output_dir": encoder_result["output_dir"],
                 }
 
             elif stage == "evaluation":
