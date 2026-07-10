@@ -38,12 +38,14 @@ data/model_zoo/*
 data/weight_images/*
 data/results/*
 data/mlflow/*
+data/experiments/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/model_zoo/.gitkeep
 !data/weight_images/.gitkeep
 !data/results/.gitkeep
 !data/mlflow/.gitkeep
+!data/experiments/.gitkeep
 
 # Common generated tensor/model/result files outside data/
 *.pt

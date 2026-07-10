@@ -1,0 +1,78 @@
+seed: 123
+device: "auto"
+
+data:
+  generator: "moons"
+  M: 32
+  N_train: 64
+  N_test: 256
+  input_dim: 2
+  n_classes: 2
+  noise: 0.15
+  random_state_start: 5000
+  centers: 2
+  cluster_std: 1.0
+  standardize: true
+
+network:
+  model_type: "mlp"
+  input_dim: 2
+  output_dim: 2
+  hidden_layers: [32]
+  activation: "relu"
+  epochs: 50
+  batch_size: 64
+  lr: 0.003
+  weight_decay: 0.0
+
+image:
+  representation: "w1_h_w2"
+  activation_input_split: "train"
+  include_input_data: false
+  include_labels: true
+  include_bias: false
+  normalize: "per_image_standardization"
+  block_gap: 1
+
+autoencoder:
+  model_type: "ae"
+  latent_dim: 16
+  epochs: 40
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0
+  train_split: 0.85
+  split_by: "image"
+  num_workers: 0
+  checkpoint_every: 0
+
+evaluation:
+  save_reconstructions: true
+  n_reconstruction_examples: 8
+  save_latent_embeddings: true
+  plot_format: "png"
+
+mlflow:
+  enabled: true
+  tracking_uri: "http://192.168.178.25:5000"
+  experiment_name: "initial-experiments"
+  run_name: "moons_w1_h_w2_m32_n64"
+  log_artifacts: true
+  log_weight_image_layouts: false
+  tags:
+    dataset: "moons"
+    representation: "w1_h_w2"
+    pilot: "true"
+
+paths:
+  data_root: "data/experiments/initial_moons_w1_h_w2"
+  raw_dir: "data/experiments/initial_moons_w1_h_w2/raw"
+  processed_dir: "data/experiments/initial_moons_w1_h_w2/processed"
+  model_zoo_dir: "data/experiments/initial_moons_w1_h_w2/model_zoo"
+  weight_image_dir: "data/experiments/initial_moons_w1_h_w2/weight_images"
+  result_dir: "data/experiments/initial_moons_w1_h_w2/results"
+  autoencoder_dir: "data/experiments/initial_moons_w1_h_w2/results/autoencoders"
+  figure_dir: "data/experiments/initial_moons_w1_h_w2/results/figures"
+  metric_dir: "data/experiments/initial_moons_w1_h_w2/results/metrics"
+  mlflow_backend_store: "data/mlflow/mlflow.db"
+  mlflow_artifact_dir: "data/mlflow/artifacts"

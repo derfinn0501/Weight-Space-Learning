@@ -86,6 +86,71 @@ def build_weight_image(
     return block_matrix_layout(parameters, **kwargs)
 
 
+def w1_h_w2_layout(
+    W1: torch.Tensor,
+    hidden_activation: torch.Tensor,
+    W2: torch.Tensor,
+    block_gap: int = 1,
+    fill_value: float = 0.0,
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    """
+    Build the professor-style image [W1 | h(x) | W2^T] for one hidden-layer MLPs.
+
+    PyTorch stores Linear weights as [out_features, in_features]. For a network
+    input -> hidden -> output, W1 has shape [hidden_dim, input_dim] and W2 has
+    shape [output_dim, hidden_dim]. W2 is transposed so every block shares the
+    hidden-unit row axis.
+    """
+    if block_gap < 0:
+        raise ValueError("block_gap must be non-negative.")
+
+    W1 = W1.detach().cpu().float()
+    h = hidden_activation.detach().cpu().float().reshape(-1, 1)
+    W2_t = W2.detach().cpu().float().T
+
+    hidden_dim = int(W1.shape[0])
+    if h.shape[0] != hidden_dim:
+        raise ValueError(f"h has height {h.shape[0]}, expected hidden_dim={hidden_dim}.")
+    if W2_t.shape[0] != hidden_dim:
+        raise ValueError(f"W2.T has height {W2_t.shape[0]}, expected hidden_dim={hidden_dim}.")
+
+    blocks = [
+        ("W1", W1),
+        ("h", h),
+        ("W2_transposed", W2_t),
+    ]
+    total_width = sum(int(block.shape[1]) for _, block in blocks) + block_gap * (len(blocks) - 1)
+    image = torch.full((hidden_dim, total_width), float(fill_value), dtype=torch.float32)
+
+    metadata_blocks: list[dict[str, Any]] = []
+    left = 0
+    for name, block in blocks:
+        height, width = int(block.shape[0]), int(block.shape[1])
+        image[:, left : left + width] = block
+        metadata_blocks.append(
+            {
+                "name": name,
+                "top": 0,
+                "left": left,
+                "height": height,
+                "width": width,
+                "matrix_shape": [height, width],
+            }
+        )
+        left += width + block_gap
+
+    metadata = {
+        "representation": "w1_h_w2",
+        "image_shape": list(image.shape),
+        "block_gap": block_gap,
+        "fill_value": fill_value,
+        "row_axis": "hidden_units",
+        "blocks": metadata_blocks,
+        "notes": "Canvas is [W1 | h(x) | W2^T] for a one-hidden-layer MLP.",
+    }
+    return image, metadata
+
+
 def append_input_data_block(
     weight_image: torch.Tensor,
     layout_metadata: dict[str, Any],
@@ -149,4 +214,3 @@ def append_input_data_block(
         "weight_layout": copy.deepcopy(layout_metadata),
     }
     return composite, metadata
-

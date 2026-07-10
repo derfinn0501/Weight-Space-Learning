@@ -144,11 +144,13 @@ def _selected_artifacts(config: dict[str, Any], stage: str) -> list[Path]:
             model_zoo_dir / "metrics",
         ]
     if stage == "weight_images":
-        return [
+        artifacts = [
             weight_image_dir / "metadata.json",
             weight_image_dir / "metadata.csv",
-            weight_image_dir / "layouts",
         ]
+        if bool(config.get("mlflow", {}).get("log_weight_image_layouts", False)):
+            artifacts.append(weight_image_dir / "layouts")
+        return artifacts
     if stage == "autoencoder":
         return [
             autoencoder_dir / "checkpoint.pt",

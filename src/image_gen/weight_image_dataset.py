@@ -48,6 +48,6 @@ class WeightImageDataset(Dataset):
         return {
             "image": image,
             "dataset_id": dataset_id,
+            "image_id": payload.get("image_id", dataset_id) if isinstance(payload, dict) else dataset_id,
             "path": str(self.image_paths[index]),
         }
-

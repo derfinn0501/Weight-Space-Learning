@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.cond_AE.ae_models import build_autoencoder
-from src.cond_AE.datasets import load_weight_image_dataset, train_validation_split
+from src.cond_AE.datasets import load_weight_image_dataset, subset_dataset_ids, train_validation_split
 from src.utils.io import load_torch, save_json, save_torch
 from src.utils.paths import create_output_dirs
 
@@ -100,6 +100,7 @@ def train_autoencoder(config: dict[str, Any]) -> dict[str, Any]:
         dataset,
         train_split=float(ae_config.get("train_split", 0.8)),
         seed=seed,
+        split_by=str(ae_config.get("split_by", "image")),
     )
 
     batch_size = int(ae_config.get("batch_size", 16))
@@ -163,6 +164,9 @@ def train_autoencoder(config: dict[str, Any]) -> dict[str, Any]:
         "train": train_metrics,
         "validation": val_metrics,
     }
+    train_dataset_ids = subset_dataset_ids(train_dataset)
+    validation_dataset_ids = subset_dataset_ids(val_dataset)
+    overlap_dataset_ids = sorted(set(train_dataset_ids) & set(validation_dataset_ids))
     metadata = {
         "model_type": ae_config.get("model_type", "cae"),
         "latent_dim": int(ae_config.get("latent_dim", 32)),
@@ -170,6 +174,12 @@ def train_autoencoder(config: dict[str, Any]) -> dict[str, Any]:
         "n_images": len(dataset),
         "n_train": len(train_dataset),
         "n_validation": len(val_dataset),
+        "split_by": str(ae_config.get("split_by", "image")),
+        "n_train_models": len(train_dataset_ids),
+        "n_validation_models": len(validation_dataset_ids),
+        "train_dataset_ids": train_dataset_ids,
+        "validation_dataset_ids": validation_dataset_ids,
+        "overlap_dataset_ids": overlap_dataset_ids,
         "batch_size": batch_size,
         "epochs": n_epochs,
     }
@@ -206,4 +216,3 @@ def load_trained_autoencoder(config: dict[str, Any]) -> tuple[nn.Module, dict[st
     )
     model.load_state_dict(checkpoint["state_dict"])
     return model, checkpoint
-
